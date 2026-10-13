@@ -2,18 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppSettings, Language, TrainingItem, TrainingStats } from '../types';
 import { generateItem } from '../lib/generators';
 import { cancelSpeech, speak } from '../lib/speech';
+import { useT } from '../lib/i18n';
 
 interface Props {
   settings: AppSettings;
   language: Language;
   onFinish: (stats: TrainingStats) => void;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  numbers: 'Числа',
-  dates: 'Даты',
-  currency: 'Валюты',
-};
 
 const LANG_LABELS: Record<Language, string> = {
   'en-US': '🇺🇸 English (US)',
@@ -28,6 +23,7 @@ function formatTime(totalSeconds: number): string {
 }
 
 export function TrainingScreen({ settings, language, onFinish }: Props) {
+  const t = useT();
   const totalSeconds = settings.durationMinutes * 60;
 
   const [item, setItem] = useState<TrainingItem | null>(null);
@@ -168,11 +164,11 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
       <header className="training-header">
         <div className="training-chips">
           <span className="chip">{LANG_LABELS[language]}</span>
-          <span className="chip">{TYPE_LABELS[settings.contentType]}</span>
-          <span className="chip chip-muted">Задание №{taskNumber}</span>
+          <span className="chip">{t.contentTypes[settings.contentType].title}</span>
+          <span className="chip chip-muted">{t.taskNumber(taskNumber)}</span>
         </div>
         <div className="training-timer-block">
-          <span className={`training-timer${timeUp ? ' is-over' : ''}`} aria-label="Оставшееся время">
+          <span className={`training-timer${timeUp ? ' is-over' : ''}`} aria-label={t.timeLeft}>
             {formatTime(remaining)}
           </span>
           <button
@@ -180,7 +176,7 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
             className="btn btn-icon"
             onClick={togglePause}
             disabled={timeUp}
-            aria-label={paused ? 'Продолжить тренировку' : 'Приостановить тренировку'}
+            aria-label={paused ? t.resumeTraining : t.pauseTraining}
           >
             {paused ? (
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
@@ -193,7 +189,7 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
             )}
           </button>
           <button type="button" className="btn btn-ghost btn-small" onClick={finish}>
-            Завершить
+            {t.finish}
           </button>
         </div>
       </header>
@@ -203,19 +199,18 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
 
       {timeUp && (
         <div className="banner banner-info" role="status">
-          Время вышло! Новые задания не генерируются.
-          {!revealed && item ? ' Вы можете посмотреть ответ на текущее задание.' : ''}
+          {t.timeUp}
+          {!revealed && item ? t.timeUpReveal : ''}
         </div>
       )}
       {paused && (
         <div className="banner banner-info" role="status">
-          Тренировка на паузе. Таймер остановлен.
+          {t.trainingPaused}
         </div>
       )}
       {speechError && (
         <div className="banner banner-error" role="alert">
-          Не удалось воспроизвести задание. Проверьте, что в браузере доступен
-          голос для выбранного языка, и попробуйте «Прослушать ещё раз».
+          {t.taskSpeechError}
         </div>
       )}
 
@@ -226,7 +221,7 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
             className={`play-button${speaking ? ' is-speaking' : ''}`}
             onClick={listenAgain}
             disabled={speaking || paused || timeUp}
-            aria-label="Прослушать ещё раз"
+            aria-label={t.listenAgain}
           >
             <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor" aria-hidden="true">
               <path d="M3 9v6h4l5 5V4L7 9H3z" />
@@ -236,21 +231,21 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
           </button>
           <p className="play-caption">
             {speaking
-              ? 'Произносится…'
+              ? t.speaking
               : paused
-                ? 'Пауза'
-                : 'Прослушать ещё раз'}
+                ? t.paused
+                : t.listenAgain}
           </p>
         </div>
 
         <div className="answer-block">
-          <label htmlFor="answer-input">Запишите, что услышали</label>
+          <label htmlFor="answer-input">{t.writeWhatYouHeard}</label>
           <input
             id="answer-input"
             ref={answerInputRef}
             type="text"
             autoComplete="off"
-            placeholder="Ваш черновик — не проверяется"
+            placeholder={t.draftPlaceholder}
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
           />
@@ -263,11 +258,11 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
             onClick={reveal}
             disabled={!item || paused}
           >
-            Показать ответ
+            {t.showAnswer}
           </button>
         ) : (
           <div className="answer-reveal" role="status">
-            <span className="answer-label">Правильный ответ</span>
+            <span className="answer-label">{t.correctAnswer}</span>
             <div className="answer-value">{item?.displayValue}</div>
             <div className="answer-words">{item?.speechText}</div>
           </div>
@@ -280,7 +275,7 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
             onClick={() => nextTask(settings.pauseSeconds * 1000)}
             disabled={paused}
           >
-            Следующее задание
+            {t.nextTask}
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
               <path d="M8.6 4.6 15 11l-6.4 6.4L10 19l8-8-8-8z" />
             </svg>
@@ -288,7 +283,7 @@ export function TrainingScreen({ settings, language, onFinish }: Props) {
         )}
         {timeUp && (revealed || !item) && (
           <button type="button" className="btn btn-primary" onClick={finish}>
-            Показать итоги
+            {t.showResults}
           </button>
         )}
       </main>

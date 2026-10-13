@@ -1,15 +1,10 @@
 import type { TrainingStats } from '../types';
+import { useT } from '../lib/i18n';
 
 interface Props {
   stats: TrainingStats;
   onRestart: () => void;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  numbers: 'Числа',
-  dates: 'Даты',
-  currency: 'Валюты',
-};
 
 const LANG_LABELS: Record<string, string> = {
   'en-US': 'English (US)',
@@ -17,59 +12,53 @@ const LANG_LABELS: Record<string, string> = {
   'fr-FR': 'Français',
 };
 
-function formatElapsed(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  if (m === 0) return `${s} сек`;
-  return s === 0 ? `${m} мин` : `${m} мин ${s} сек`;
-}
-
 export function SummaryScreen({ stats, onRestart }: Props) {
+  const t = useT();
   const isDictation = stats.mode === 'dictation';
 
   return (
     <div className="screen summary-screen">
       <div className="card summary-card">
         <div className="summary-icon" aria-hidden="true">🎉</div>
-        <h1>Тренировка завершена!</h1>
+        <h1>{t.trainingComplete}</h1>
         <p className="summary-note">
           {isDictation
-            ? 'Сверьте свои записи со списком продиктованных значений ниже.'
-            : 'Отличная работа. Регулярные короткие тренировки — лучший способ научиться уверенно воспринимать числа на слух.'}
+            ? t.summaryDictation
+            : t.summaryStepByStep}
         </p>
 
         <dl className="summary-stats">
           <div className="stat">
-            <dt>Продолжительность</dt>
-            <dd>{formatElapsed(stats.elapsedSeconds)}</dd>
+            <dt>{t.statDuration}</dt>
+            <dd>{t.elapsed(Math.floor(stats.elapsedSeconds / 60), stats.elapsedSeconds % 60)}</dd>
           </div>
           <div className="stat">
-            <dt>Язык</dt>
+            <dt>{t.statLanguage}</dt>
             <dd>{LANG_LABELS[stats.language]}</dd>
           </div>
           <div className="stat">
-            <dt>Тип контента</dt>
-            <dd>{TYPE_LABELS[stats.contentType]}</dd>
+            <dt>{t.statContentType}</dt>
+            <dd>{t.contentTypes[stats.contentType].title}</dd>
           </div>
           <div className="stat">
-            <dt>{isDictation ? 'Продиктовано значений' : 'Создано заданий'}</dt>
+            <dt>{isDictation ? t.statDictated : t.statTasksCreated}</dt>
             <dd>{stats.tasksCreated}</dd>
           </div>
           {!isDictation && (
             <div className="stat">
-              <dt>Просмотрено ответов</dt>
+              <dt>{t.statAnswersViewed}</dt>
               <dd>{stats.tasksViewed}</dd>
             </div>
           )}
           <div className="stat">
-            <dt>Скорость речи</dt>
+            <dt>{t.statSpeechRate}</dt>
             <dd>{stats.speechRate.toFixed(1)}×</dd>
           </div>
         </dl>
 
         {isDictation && stats.items.length > 0 && (
           <div className="dictated-list-block">
-            <h2>Продиктованные значения</h2>
+            <h2>{t.dictatedValues}</h2>
             <ol className="dictated-list">
               {stats.items.map((item, i) => (
                 <li key={item.id}>
@@ -83,7 +72,7 @@ export function SummaryScreen({ stats, onRestart }: Props) {
         )}
 
         <button type="button" className="btn btn-primary btn-start" onClick={onRestart}>
-          Начать новую тренировку
+          {t.newTraining}
         </button>
       </div>
     </div>

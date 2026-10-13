@@ -2,18 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppSettings, Language, TrainingItem, TrainingStats } from '../types';
 import { generateItem } from '../lib/generators';
 import { cancelSpeech, speak } from '../lib/speech';
+import { useT } from '../lib/i18n';
 
 interface Props {
   settings: AppSettings;
   language: Language;
   onFinish: (stats: TrainingStats) => void;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  numbers: 'Числа',
-  dates: 'Даты',
-  currency: 'Валюты',
-};
 
 const LANG_LABELS: Record<Language, string> = {
   'en-US': '🇺🇸 English (US)',
@@ -28,6 +23,7 @@ function formatTime(totalSeconds: number): string {
 }
 
 export function DictationScreen({ settings, language, onFinish }: Props) {
+  const t = useT();
   const totalSeconds = settings.durationMinutes * 60;
 
   const [count, setCount] = useState(0);
@@ -155,18 +151,18 @@ export function DictationScreen({ settings, language, onFinish }: Props) {
       <header className="training-header">
         <div className="training-chips">
           <span className="chip">{LANG_LABELS[language]}</span>
-          <span className="chip">{TYPE_LABELS[settings.contentType]}</span>
-          <span className="chip chip-muted">Продиктовано: {count}</span>
+          <span className="chip">{t.contentTypes[settings.contentType].title}</span>
+          <span className="chip chip-muted">{t.dictatedCount(count)}</span>
         </div>
         <div className="training-timer-block">
-          <span className="training-timer" aria-label="Оставшееся время">
+          <span className="training-timer" aria-label={t.timeLeft}>
             {formatTime(remaining)}
           </span>
           <button
             type="button"
             className="btn btn-icon"
             onClick={togglePause}
-            aria-label={paused ? 'Продолжить диктовку' : 'Приостановить диктовку'}
+            aria-label={paused ? t.resumeDictation : t.pauseDictation}
           >
             {paused ? (
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
@@ -179,7 +175,7 @@ export function DictationScreen({ settings, language, onFinish }: Props) {
             )}
           </button>
           <button type="button" className="btn btn-ghost btn-small" onClick={finish}>
-            Завершить
+            {t.finish}
           </button>
         </div>
       </header>
@@ -189,13 +185,12 @@ export function DictationScreen({ settings, language, onFinish }: Props) {
 
       {paused && !speechError && (
         <div className="banner banner-info" role="status">
-          Диктовка на паузе. Таймер остановлен — нажмите ▶ чтобы продолжить.
+          {t.dictationPaused}
         </div>
       )}
       {speechError && (
         <div className="banner banner-error" role="alert">
-          Не удалось воспроизвести значение. Проверьте, что в браузере доступен
-          голос для выбранного языка, и нажмите ▶ чтобы продолжить.
+          {t.dictationSpeechError}
         </div>
       )}
 
@@ -213,28 +208,25 @@ export function DictationScreen({ settings, language, onFinish }: Props) {
           </div>
           <p className="play-caption" role="status">
             {paused
-              ? 'Пауза'
+              ? t.paused
               : speaking
-                ? 'Диктуется — записывайте!'
-                : 'Диктовка идёт…'}
+                ? t.dictating
+                : t.dictationRunning}
           </p>
         </div>
 
         <div className="answer-block">
-          <label htmlFor="notes-input">Черновик для записи (не проверяется)</label>
+          <label htmlFor="notes-input">{t.notesLabel}</label>
           <textarea
             id="notes-input"
             rows={5}
-            placeholder="Записывайте услышанные значения здесь или на бумаге…"
+            placeholder={t.notesPlaceholder}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
 
-        <p className="hint">
-          Все продиктованные значения будут показаны после окончания —
-          вы сможете сверить свои записи.
-        </p>
+        <p className="hint">{t.dictationHint}</p>
       </main>
     </div>
   );
